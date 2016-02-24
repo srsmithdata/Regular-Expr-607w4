@@ -1,0 +1,227 @@
+---
+output:
+  knitrBootstrap::bootstrap_document:
+    theme: slate
+    highlight: Tomorrow Night Blue
+
+---
+
+```{r echo=F, warning=F, message=F}
+# Init packages needed for subsequent code - please remove '#' before the install line if you need to install that referenced package
+
+# install.packages('devtools',repos = "http://lib.stat.cmu.edu/R/CRAN/")
+require(devtools)
+# install_github('rstudio/rmarkdown')
+# install.packages('knitr', repos = c('http://rforge.net', 'http://cran.rstudio.org'), type = 'source')
+# install_github('jimhester/knitrBootstrap')
+require(rmarkdown)
+require(knitr)
+require(knitrBootstrap)
+require(xtable)
+require(stringr)
+require(XML)
+require(RCurl)
+# install.packages("tau")
+require(tau)
+require(graphics)
+
+
+```
+
+# Exercises in Regular Expressions
+#### S Richard Smith, February 21, 2016
+
+
+## Q3: The Introductory Example
+
+```{r echo=F, warning=F, message=F}
+
+raw.data <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5543642Dr. Julius Hibbert"
+
+name <- unlist(str_extract_all(raw.data, "[[:alpha:]., ]{2,}"))
+phone <- unlist(str_extract_all(raw.data, "\\(?(\\d{3})?\\)?(-| )?\\d{3}(-| )?\\d{4}"))
+phonelist <- data.frame(name, phone)
+
+
+
+```
+
+### The Data:
+The example starts with a string of raw data:
+
+> `r raw.data`
+
+#### Using regular expressions, the authors extract the names and phone numbers from the data, and add them to a data frame:
+
+
+##### Using regular expressions, the authors extract the names and phone numbers from the data, and add them to a data frame:
+
+```{r echo=F, results='asis'}
+
+TblOut = xtable( phonelist, auto = T)
+
+print(TblOut, type = 'html', comment=F)
+
+```
+
+
+## Q7
+
+In data mining and extraction, the web is a great resource with vast amounts of data. As such, many cases arise in which we will want to pull data from webpages. To do so, we must be able to handle the "unstructured" data found there, reading in the standard web page in HTML format, and extracting the valuable information while leaving the rest. The very coding and structure of an HTML page can help us know where to tell R to look for the information we want.
+
+Using regular expressions can be a powerful way to achieve this goal. However, we must be careful since many characters used in HTML are *special* *characters* in the regex engine. 
+
+Take the following string as an example:
+`r cnn <- '<title>+++BREAKING NEWS+++</title>'`
+
+If you want to extract the first HTML tag here, you might think to write:
+```{r eval=F}
+RGXpttn <- '<.+>'
+str_extract(cnn, RGXpttn)
+
+```
+
+Since you want whatever is in the first tag, you used the wildcard character "." with a "+" after it to indicate repeating. You started and ended your pattern with the "<" and ">" since that usually indicates the beginning and ending of a tag in HTML.
+
+However, there are a couple problems with this approach. If we test this expression, we get the following:
+```{r eval=T, echo=F}
+RGXpttn <- '<.+>'
+str_extract(cnn, RGXpttn)
+
+```
+
+Remember that regular expressions are "greedy" in their natural state, meaning that they will capture the longest text string possibly while not breaking any rules of the expression. 
+
+To capture just the first tag in this string, we can modify the search pattern as follows:
+```{r}
+RGXpttn <- '<.+>'
+
+str_extract(cnn, RGXpttn)
+```
+
+If you are interested in the first tag, we could modify the code as follows:
+```{r}
+RGXpttn <- '<[:alpha:]+>'
+str_extract(cnn, RGXpttn)
+
+```
+
+Here we use the character class for all letters to capture the information inside this tag. If you want to capture the opening and closing tag, we'd have to add the variable to catch punctuation, since closing tags start with a forward slash.
+
+```{r}
+RGXpttn <- '<[[:alpha:][:punct:]]+>'
+str_extract_all(cnn, RGXpttn)
+
+```
+
+
+
+
+
+```{r}
+
+smplchtshthtml <- '<a class="addthis_button_compact at300m" href="http://www.cheatography.com/#"><span class="at-icon-wrapper" style="line-height: 32px; height: 32px; width: 32px; background-color: rgb(252, 109, 76);"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" title="Compact" alt="Compact" style="width: 32px; height: 32px;" class="at-icon at-icon-addthis"><g><path d="M25.07 13.74h-6.71V7.03h-4.47v6.71H7.18v4.47h6.71v6.71h4.47v-6.71h6.71z"></path></g></svg></span></a>'
+
+SmpPttn <- 'a'
+str_extract(SmpPttn, smplchtshthtml)
+is.character(smplchtshthtml)
+
+str_extract(smplchtshthtml, SmpPttn)             
+
+## Original Website: chtshthtml <- readLines('http://www.cheatography.com/davechild/cheat-sheets/regular-expressions/', n = -1, warn = F)
+
+
+SmpPttn <- '<([:alpha:][ [:alpha:]]?)[="./;_\\-:!@#$%^&*()-=+[:alnum:][:blank:]]+>'
+str_extract_all(smplchtshthtml, SmpPttn)
+
+SmpPttn <- '<([:alpha:]+)( [:alpha:]+)*=[="./;_\\-:!@#$%^&*()-=+[:alnum:][:blank:]]+>'
+TagTbl <- data.frame(str_match_all(smplchtshthtml, SmpPttn))
+TagTbl
+
+
+```
+
+
+Thanks to [Dave for your cheatsheet](http://www.cheatography.com/davechild/cheat-sheets/regular-expressions/).
+
+
+## Q8
+
+Given the binomial equation and it's expansion:
+$$ (5-3)^2 = 5^2-2\times5\times3+3^2 $$
+
+Let's create the formula as a string in R so we can extract the formula.
+
+```{r echo=FALSE}
+MthStr <- '(5-3)^2=5^2-2*5*3+3^2'
+MthForm <- '[^0-9=+*()]+'
+
+```
+
+When we use the search pattern `MthForm <- '[^0-9=+*()]+'`, we get:
+```{r echo=FALSE}
+MthStr <- '(5-3)^2=5^2-2*5*3+3^2'
+MthPtn <- '[^0-9=+*()]+'
+MthForm <- str_extract( MthStr, MthPtn )
+MthForm
+```
+
+As you can see, the only thing returned was the minus sign. The reason for this result is because of the issue of meta characters.
+
+The cheat sheet that we pulled HTML from above has a few tables listing all the characters. In the initial expression, the following are actually meta characters: `^, -, *, (, ), and + `. However, once inserted into a class, they are read as regular characters instead of metacharacters, with the exception of the `-` and the `^`.Since they retain their meta qualities, it's important to understand their impact. 
+- The carat `^` is used in math calculations to denote raising something to a power. To the regular expression engine, it tells the engine to return the inverse of the class members. 
+- The minus sign `-` denotes range in a class. 
+
+So instead of getting the formula, we get the inverse of the characters in the class. Since the `-` is not see as a character, but instead generates the full rangeof digits by being between 0 and 9, that is the only character returned.
+
+Since the question asks for the formula, I'm assuming that means the binomial formula without the expansion. To extract that using a similar format as the initial attempt, we could change it to :
+
+```{r}
+
+MthPtn <- '[\\^0-9\\-+*()]+'
+str_extract( MthStr, MthPtn )
+
+
+```
+
+By escaping the `^` and adding the escaped minus sign (since we do still want the full range of numbers, and removing the equal sign, we are left with everything on the left side of the equation.
+
+# Q9
+
+We are asked to decode the following:
+`r puzL1 <- 'icopCowlzmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8'`
+`r puzL2 <- 'hqrfpRxs5Aj5dwpn0Tanwo'`
+`r puzL3 <- 'Uwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3'`
+`r puzL4 <- 'ne6c4Sfek.r1wlYwwojigO'`
+`r puzL5 <- 'd6vrfUrbz2.2bkAnbhzgv4R9i05zEcrop.wAgnb.SqoU65fPa'`
+`r puzL6 <- 'lotfb7wEm24k6t3sR9zqe5'`
+`r puzL7 <- 'fy89n6Nd5t9kc4fE905gmc4Rgxo5nhDk!gr'`
+
+using regular expressions. 
+
+It is not clear if the lines are meant to be evaluated separately or as a whole single string, so I will do both.
+
+To incorporate what we've learned, I will use different search patterns to see if they decifer the message
+
+```{r}
+
+PuzLT <- as.vector( c( puzL1 , puzL2 , puzL3 , puzL4 , puzL5 , puzL6 , puzL7 ))
+
+Ptn1 <- '[:lower:]'
+Rslt1 <- str_extract_all(PuzLT, Ptn1)
+cat((cat(as.character(unlist(Rslt1)), sep= '' )))
+
+Ptn2 <- '[:upper:]'
+Rslt2 <- str_extract_all(PuzLT, Ptn2)
+cat((cat(as.character(unlist(Rslt2)), sep= '' )))
+
+
+Ptn2 <- '[:upper:]'
+Rslt2 <- str_extract_all(PuzLT, Ptn2)
+cat((cat(as.character(unlist(Rslt2)), sep= '' )))
+
+
+```
+
+Wow--on my second guess. :)
+
