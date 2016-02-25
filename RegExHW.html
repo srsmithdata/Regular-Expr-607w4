@@ -1,0 +1,1519 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  
+  <!-- bootstrap -->
+  <!--<link href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet"  id="style">-->
+  <script src="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+  
+  <!-- highlight.js -->
+  <!--<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/7.3/styles/default.min.css" rel="stylesheet" id="code-style">-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/7.3/highlight.min.js"></script>
+  <script>
+  hljs.LANGUAGES.r=function(a){var b="([a-zA-Z]|\\.[a-zA-Z.])[a-zA-Z0-9._]*";return{c:[a.HCM,{b:b,l:b,k:{keyword:"function if in break next repeat else for return switch while try tryCatch|10 stop warning require library attach detach source setMethod setGeneric setGroupGeneric setClass ...|10",literal:"NULL NA TRUE FALSE T F Inf NaN NA_integer_|10 NA_real_|10 NA_character_|10 NA_complex_|10"},r:0},{cN:"number",b:"0[xX][0-9a-fA-F]+[Li]?\\b",r:0},{cN:"number",b:"\\d+(?:[eE][+\\-]?\\d*)?L\\b",r:0},{cN:"number",b:"\\d+\\.(?!\\d)(?:i\\b)?",r:0},{cN:"number",b:"\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d*)?i?\\b",r:0},{cN:"number",b:"\\.\\d+(?:[eE][+\\-]?\\d*)?i?\\b",r:0},{b:"`",e:"`",r:0},{cN:"string",b:'"',e:'"',c:[a.BE],r:0},{cN:"string",b:"'",e:"'",c:[a.BE],r:0}]}}(hljs); </script>
+  <!--<script type="text/javascript", src="https://yandex.st/highlightjs/7.3/languages/r.min.js"></script>-->
+  
+  <!-- Manific Popup -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/0.8.9/jquery.magnific-popup.min.js"></script>
+  
+  <script type="text/javascript"
+    src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script>
+  <script defer="defer">
+  // Function to generate the dynamic table of contents
+  jQuery.fn.generate_TOC = function () {
+    var base = $(this[0]);
+  
+    var selectors = ['h1', 'h2', 'h3', 'h4'];
+  
+    var last_ptr = [{}, {}, {}, {}];
+  
+    var anchors = {};
+  
+    generate_anchor = function (text) {
+      var test = text.replace(/\W/g, '_');
+  
+      while(test in anchors){
+        //if no suffix, add one
+        if(test.match(/_\d+$/) === null){
+          test = test + "_2";
+        }
+        //else generate unique id for duplicates by adding one to the suffix
+        else {
+          test = test.replace(/_(\d+)$/, function(match, number){ var num=+number+1; return("_" + num) });
+        }
+      }
+      anchors[test]=1;
+      return(test);
+    }
+  
+    $(selectors.join(',')).filter(function(index) { return $(this).parent().attr("id") != 'header'; }).each(function () {
+  
+      var heading = $(this);
+      var idx = selectors.indexOf(heading.prop('tagName').toLowerCase());
+      var itr = 0;
+  
+      while (itr <= idx) {
+        if (jQuery.isEmptyObject(last_ptr[itr])) {
+          last_ptr[itr] = $('<ul>').addClass('nav');
+          if (itr === 0) {
+            base.append(last_ptr[itr])
+          } else {
+            if(last_ptr[itr-1].children('li').length === 0){
+              last_ptr[itr-1].append(last_ptr[itr]);
+            }
+            else {
+              last_ptr[itr - 1].children('li').last().append(last_ptr[itr]);
+            }
+          }
+        }
+        itr++;
+      }
+      var anchor = generate_anchor(heading.text());
+      heading.attr('id', anchor);
+      var a = $('<a>')
+      .text(heading.text())
+      .attr('href', '#' + anchor);
+  
+    var li = $('<li>')
+      .append(a);
+  
+    last_ptr[idx].append(li);
+    for (i = idx + 1; i < last_ptr.length; i++) {
+      last_ptr[i] = {};
+    }
+    });
+  }
+  /* run scripts when document is ready */
+  $(function() {
+    "use strict";
+  
+    var $window = $(window);
+    var $body = $(document.body);
+  
+    /* size of thumbnails */
+  
+    var hidden_types = ['source']
+    var output_types = ['output', 'message', 'warning', 'error']
+  
+    /* style tables */
+    $('table').addClass('table table-striped table-bordered table-hover table-condensed');
+  
+    $('pre code').each(function(i, e) {
+      hljs.highlightBlock(e);
+    });
+  
+    /* Magnific Popup */
+    $(".thumbnail").each(function(){
+      $(this).magnificPopup({
+        disableOn: 768,
+        closeOnContentClick: true,
+  
+        type: 'image',
+        items: {
+          src: $(this).find('img').attr('src'),
+        }
+      });
+    });
+  
+    function toggle_block(obj, show) {
+      var span = obj.find('span');
+      if(show === true){
+        span.removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+        obj.next('pre').slideDown();
+      }
+      else {
+        span.removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
+        obj.next('pre').slideUp();
+      }
+    }
+  
+    function toggle_thumbnails(imgs, show){
+      if(show === true){
+        imgs.parents().show()
+        imgs.slideDown();
+      }
+      else {
+        imgs.slideUp(400, function(){ $(this).parent().hide(); });
+      }
+    }
+  
+    function global_toggle(obj){
+      var type = obj.attr('type');
+      var show = !obj.parent('li').hasClass('active');
+      if(show === true){
+        obj.parent('li').addClass('active');
+      }
+      else{
+        obj.parent('li').removeClass('active');
+      }
+      if(type == 'figure'){
+        toggle_thumbnails($('.thumbnail img'), show);
+      }
+      else {
+        $('.toggle.' + type).each(function() { toggle_block($(this), show); });
+      }
+    }
+  
+    /* onclick toggle next code block */
+    $('.toggle').click(function() {
+      var span = $(this).find('span');
+      toggle_block($(this), !span.hasClass('glyphicon-chevron-down'));
+      return false
+    })
+  
+    // global toggles
+    $('.toggle-global').click(function(){
+      var type = $(this).attr('type');
+      if(type === 'all-source'){
+          $('li a.source').each(function() {
+            global_toggle($(this));
+          });
+        }
+      else if(type === 'all-output'){
+        $.each(output_types, function(i, val){
+          console.log(val);
+          global_toggle($('li a.' + val));
+        });
+      }
+      else {
+        console.log($(this));
+        global_toggle($(this));
+      }
+      return false;
+    });
+    /* table of contents */
+    if($(['h1', 'h2', 'h3', 'h4'].join(',')).length > 0){
+      $('body > #wrap > .container > .row').append('<div class="col-md-2"><div id="toc" class="well sidebar sidenav affix hidden-print"/></div>');
+      $('#toc').generate_TOC();
+    }
+  
+    $.each(hidden_types, function(i, type) {
+      $('li[type=' + type + ']').each(function(){ global_toggle($(this)); });
+    });
+  
+    /* remove paragraphs with no content */
+    $('p:empty').remove();
+  
+    $body.scrollspy({
+      target: '.sidebar',
+    });
+  
+    /* theme switch */
+    $('.theme-switch').click(function(){
+      var css = $('link[title=' + $(this).attr('title') + ']');
+      $('#theme[rel=stylesheet]').attr('href', css.attr('href'));
+      $('.theme-switch').closest('li').removeClass('active');
+      $(this).closest('li').addClass('active');
+      return false;
+    });
+    /* code style switch */ //TODO use same function for both of these?
+    $('.highlight-switch').click(function(){
+      var css = $('link[title="' + $(this).attr('title') + '"]');
+      $('#highlight[rel=stylesheet]').attr('href', css.attr('href'));
+      $('.highlight-switch').closest('li').removeClass('active');
+      $(this).closest('li').addClass('active');
+      return false;
+    });
+  
+    //TODO refresh on show/hide
+    $window.on('load', function () {
+      $body.scrollspy('refresh');
+    })
+  
+  });
+  
+  </script>
+  <style>
+  /* Knitr_bootstrap styles */
+  #header {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  #wrap .container-fluid {
+    padding: 0;
+    overflow: hidden;
+  }
+  .toggle{
+    text-transform: capitalize;
+  }
+  
+  .toggle-global{
+    text-transform: capitalize;
+  }
+  
+  /* Sticky footer styles */
+  * {
+    margin:0;
+  }
+  html,
+  body {
+      height: 100%;
+      padding:0 !important;
+      /* The html and body elements cannot have any padding or margin. */
+      /*overflow-x: hidden;*/
+  }
+  
+  /* Wrapper for page content to push down footer */
+  #wrap {
+      min-height: 100%;
+      height: auto !important;
+      height: 100%;
+      /* Negative indent footer by it's height */
+      margin: 0 auto -120px;
+  }
+  
+  /* Set the fixed height of the footer here */
+  #push,
+  #footer {
+      height: 120px;
+  }
+  
+  #footer {
+    text-align: center;
+  }
+  
+  /* Top level subheader elements.  These are the first nested items underneath a header element. */
+  .header li {
+    font-size: 20px;
+  }
+  
+  /* Makes the font smaller for all subheader elements. */
+  .sub-header li {
+      font-size: 12px;
+  }
+  
+  button.thumbnails {
+    margin-left:0px;
+  }
+  
+  /*
+   * Side navigation
+   *
+   * Scrollspy and affixed enhanced navigation to highlight sections and secondary
+   * sections of docs content.
+   */
+  
+  /* By default it's not affixed in mobile views, so undo that */
+  .sidebar.affix {
+    position: static;
+  }
+  
+  /* First level of nav */
+  .sidenav {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    padding-top:    10px;
+    padding-bottom: 10px;
+    border-radius: 5px;
+  }
+  
+  /* All levels of nav */
+  .sidebar .nav > li > a {
+    display: block;
+    padding: 5px 20px;
+  }
+  .sidebar .nav > li > a:hover,
+  .sidebar .nav > li > a:focus {
+    text-decoration: none;
+    border-right: 1px solid;
+  }
+  .sidebar .nav > .active > a,
+  .sidebar .nav > .active:hover > a,
+  .sidebar .nav > .active:focus > a {
+    font-weight: bold;
+    background-color: transparent;
+    border-right: 1px solid;
+  }
+  
+  /* Nav: second level (shown on .active) */
+  .sidebar .nav .nav {
+    display: none; /* Hide by default, but at >768px, show it */
+    margin-bottom: 8px;
+  }
+  .sidebar .nav .nav > li > a {
+    padding-top:    3px;
+    padding-bottom: 3px;
+    padding-left: 30px;
+    font-size: 90%;
+  }
+  
+  .sidebar .nav .nav .nav > li > a {
+    padding-left: 40px;
+  }
+  .sidebar .nav .nav .nav .nav > li > a {
+    padding-left: 50px;
+  }
+  
+  /* Show and affix the side nav when space allows it */
+  @media screen and (min-width: 992px) {
+    .sidebar .nav > .active > ul {
+      display: block;
+    }
+    /* Widen the fixed sidebar */
+    .sidebar.affix,
+    .sidebar.affix-bottom {
+      width: 213px;
+    }
+    .sidebar.affix-top,
+    .sidebar.affix {
+      position: fixed; /* Undo the static from mobile first approach */
+      top: 30px;
+    }
+    .sidebar.affix-bottom {
+      position: absolute; /* Undo the static from mobile first approach */
+    }
+    .sidebar.affix-bottom .sidenav,
+    .sidebar.affix .sidenav {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+  @media screen and (min-width: 1200px) {
+    /* Widen the fixed sidebar again */
+    .sidebar.affix-bottom,
+    .sidebar.affix {
+      width: 263px;
+    }
+  }
+  
+  #toc {
+    padding: 10px 0px;
+    margin:0;
+    border:0;
+  }
+  
+  
+  .panel pre {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  button + pre {
+    margin: 0;
+    padding: 0;
+  }
+  pre code {
+    border-radius: 0;
+  }
+  /* Magnific Popup CSS */
+  .mfp-bg {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1042;
+    overflow: hidden;
+    position: fixed;
+    background: #0b0b0b;
+    opacity: 0.8;
+    filter: alpha(opacity=80); }
+  
+  .mfp-wrap {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1043;
+    position: fixed;
+    outline: none !important;
+    -webkit-backface-visibility: hidden; }
+  
+  .mfp-container {
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    padding: 0 8px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box; }
+  
+  .mfp-container:before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle; }
+  
+  .mfp-align-top .mfp-container:before {
+    display: none; }
+  
+  .mfp-content {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0 auto;
+    text-align: left;
+    z-index: 1045; }
+  
+  .mfp-inline-holder .mfp-content,
+  .mfp-ajax-holder .mfp-content {
+    width: 100%;
+    cursor: auto; }
+  
+  .mfp-ajax-cur {
+    cursor: progress; }
+  
+  .mfp-zoom-out-cur,
+  .mfp-zoom-out-cur .mfp-image-holder .mfp-close {
+    cursor: -moz-zoom-out;
+    cursor: -webkit-zoom-out;
+    cursor: zoom-out; }
+  
+  .mfp-zoom {
+    cursor: pointer;
+    cursor: -webkit-zoom-in;
+    cursor: -moz-zoom-in;
+    cursor: zoom-in; }
+  
+  .mfp-auto-cursor .mfp-content {
+    cursor: auto; }
+  
+  .mfp-close,
+  .mfp-arrow,
+  .mfp-preloader,
+  .mfp-counter {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none; }
+  
+  .mfp-loading.mfp-figure {
+    display: none; }
+  
+  .mfp-hide {
+    display: none !important; }
+  
+  .mfp-preloader {
+    color: #cccccc;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    text-align: center;
+    margin-top: -0.8em;
+    left: 8px;
+    right: 8px;
+    z-index: 1044; }
+  
+  .mfp-preloader a {
+    color: #cccccc; }
+  
+  .mfp-preloader a:hover {
+    color: white; }
+  
+  .mfp-s-ready .mfp-preloader {
+    display: none; }
+  
+  .mfp-s-error .mfp-content {
+    display: none; }
+  
+  button.mfp-close,
+  button.mfp-arrow {
+    overflow: visible;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    -webkit-appearance: none;
+    display: block;
+    padding: 0;
+    z-index: 1046;
+    -webkit-box-shadow: none;
+    box-shadow: none; }
+  
+  button::-moz-focus-inner {
+    padding: 0;
+    border: 0; }
+  
+  .mfp-close {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    text-decoration: none;
+    text-align: center;
+    opacity: 0.65;
+    padding: 0 0 18px 10px;
+    color: white;
+    font-style: normal;
+    font-size: 28px;
+    font-family: Arial, Baskerville, monospace; }
+    .mfp-close:hover, .mfp-close:focus {
+      opacity: 1; }
+    .mfp-close:active {
+      top: 1px; }
+  
+  .mfp-close-btn-in .mfp-close {
+    color: #333333; }
+  
+  .mfp-image-holder .mfp-close,
+  .mfp-iframe-holder .mfp-close {
+    color: white;
+    right: -6px;
+    text-align: right;
+    padding-right: 6px;
+    width: 100%; }
+  
+  .mfp-counter {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: #cccccc;
+    font-size: 12px;
+    line-height: 18px; }
+  
+  .mfp-arrow {
+    position: absolute;
+    opacity: 0.65;
+    margin: 0;
+    top: 50%;
+    margin-top: -55px;
+    padding: 0;
+    width: 90px;
+    height: 110px;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+  
+  .mfp-arrow:active {
+    margin-top: -54px; }
+  
+  .mfp-arrow:hover,
+  .mfp-arrow:focus {
+    opacity: 1; }
+  
+  .mfp-arrow:before, .mfp-arrow:after,
+  .mfp-arrow .mfp-b,
+  .mfp-arrow .mfp-a {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin-top: 35px;
+    margin-left: 35px;
+    border: medium inset transparent; }
+  .mfp-arrow:after,
+  .mfp-arrow .mfp-a {
+    border-top-width: 13px;
+    border-bottom-width: 13px;
+    top: 8px; }
+  .mfp-arrow:before,
+  .mfp-arrow .mfp-b {
+    border-top-width: 21px;
+    border-bottom-width: 21px; }
+  
+  .mfp-arrow-left {
+    left: 0; }
+    .mfp-arrow-left:after,
+    .mfp-arrow-left .mfp-a {
+      border-right: 17px solid white;
+      margin-left: 31px; }
+    .mfp-arrow-left:before,
+    .mfp-arrow-left .mfp-b {
+      margin-left: 25px;
+      border-right: 27px solid #3f3f3f; }
+  
+  .mfp-arrow-right {
+    right: 0; }
+    .mfp-arrow-right:after,
+    .mfp-arrow-right .mfp-a {
+      border-left: 17px solid white;
+      margin-left: 39px; }
+    .mfp-arrow-right:before,
+    .mfp-arrow-right .mfp-b {
+      border-left: 27px solid #3f3f3f; }
+  
+  .mfp-iframe-holder {
+    padding-top: 40px;
+    padding-bottom: 40px; }
+  
+  .mfp-iframe-holder .mfp-content {
+    line-height: 0;
+    width: 100%;
+    max-width: 900px; }
+  
+  .mfp-iframe-scaler {
+    width: 100%;
+    height: 0;
+    overflow: hidden;
+    padding-top: 56.25%; }
+  
+  .mfp-iframe-scaler iframe {
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+    background: black; }
+  
+  .mfp-iframe-holder .mfp-close {
+    top: -40px; }
+  
+  /* Main image in popup */
+  img.mfp-img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    line-height: 0;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 40px 0 40px;
+    margin: 0 auto; }
+  
+  /* The shadow behind the image */
+  .mfp-figure:after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 40px;
+    bottom: 40px;
+    display: block;
+    right: 0;
+    width: auto;
+    height: auto;
+    z-index: -1;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+    background: #444444; }
+  
+  .mfp-figure {
+    line-height: 0; }
+  
+  .mfp-bottom-bar {
+    margin-top: -36px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    cursor: auto; }
+  
+  .mfp-title {
+    text-align: left;
+    line-height: 18px;
+    color: #f3f3f3;
+    word-wrap: break-word;
+    padding-right: 36px; }
+  
+  .mfp-figure small {
+    color: #bdbdbd;
+    display: block;
+    font-size: 12px;
+    line-height: 14px; }
+  
+  .mfp-image-holder .mfp-content {
+    max-width: 100%; }
+  
+  .mfp-gallery .mfp-image-holder .mfp-figure {
+    cursor: pointer; }
+  
+  @media screen and (max-width: 800px) and (orientation: landscape), screen and (max-height: 300px) {
+    /**
+     * Remove all paddings around the image on small screen
+     */
+    .mfp-img-mobile .mfp-image-holder {
+      padding-left: 0;
+      padding-right: 0; }
+  
+    .mfp-img-mobile img.mfp-img {
+      padding: 0; }
+  
+    /* The shadow behind the image */
+    .mfp-img-mobile .mfp-figure:after {
+      top: 0;
+      bottom: 0; }
+  
+    .mfp-img-mobile .mfp-bottom-bar {
+      background: rgba(0, 0, 0, 0.6);
+      bottom: 0;
+      margin: 0;
+      top: auto;
+      padding: 3px 5px;
+      position: fixed;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box; }
+  
+    .mfp-img-mobile .mfp-bottom-bar:empty {
+      padding: 0; }
+  
+    .mfp-img-mobile .mfp-counter {
+      right: 5px;
+      top: 3px; }
+  
+    .mfp-img-mobile .mfp-close {
+      top: 0;
+      right: 0;
+      width: 35px;
+      height: 35px;
+      line-height: 35px;
+      background: rgba(0, 0, 0, 0.6);
+      position: fixed;
+      text-align: center;
+      padding: 0; }
+  
+    .mfp-img-mobile .mfp-figure small {
+      display: inline;
+      margin-left: 5px; } }
+  @media all and (max-width: 900px) {
+    .mfp-arrow {
+      -webkit-transform: scale(0.75);
+      transform: scale(0.75); }
+  
+    .mfp-arrow-left {
+      -webkit-transform-origin: 0;
+      transform-origin: 0; }
+  
+    .mfp-arrow-right {
+      -webkit-transform-origin: 100%;
+      transform-origin: 100%; }
+  
+    .mfp-container {
+      padding-left: 6px;
+      padding-right: 6px; } }
+  .mfp-ie7 .mfp-img {
+    padding: 0; }
+  .mfp-ie7 .mfp-bottom-bar {
+    width: 600px;
+    left: 50%;
+    margin-left: -300px;
+    margin-top: 5px;
+    padding-bottom: 5px; }
+  .mfp-ie7 .mfp-container {
+    padding: 0; }
+  .mfp-ie7 .mfp-content {
+    padding-top: 44px; }
+  .mfp-ie7 .mfp-close {
+    top: 0;
+    right: 0;
+    padding-top: 0; }
+  
+  //Magnific overrides
+  .mfp-image img{
+    background: white;
+  }
+  .mfp-figure:after {
+    background: white;
+  }
+  
+  /*
+   * Off Canvas navbar toggle right
+   * --------------------------------------------------
+   */
+  
+  @media screen and (max-width: 768px) {
+    .row-offcanvas .collapsing {
+    -webkit-transition: none 0;
+      -moz-transition: none 0;
+      transition: none 0;
+    }
+   .row-offcanvas .navbar {
+    position: absolute;
+    z-index: 2;
+      right:0;
+      height:100%;
+      width:55px;
+      border:0;
+      background-color:transparent;
+    }
+    .row-offcanvas .navbar-toggle {
+      margin-right: 5px;
+      margin-left: 5px;
+    }
+    .row-offcanvas {
+      position: relative;
+    }
+    .row-offcanvas-right.active .navbar {
+    position: absolute;
+    z-index: 2;
+      right: -28.4%;
+      width:40%;
+      background-color:#eee;
+      border:0 solid #ddd;
+      border-left-width:1px;
+    }
+    .row-offcanvas-right.active {
+      left: -30%;
+    }
+    .row-offcanvas-right.active .navbar-collapse {
+      position: relative;
+      width: 100%;
+    }
+    .row-offcanvas .content {
+    /*width:calc(100% - 60px);*/
+    }
+  }
+  </style>
+</head>
+<body>
+<div id="wrap">
+<div class="container">
+<div class="row row-offcanvas row-offcanvas-right">
+<div class="contents col-xs-12 col-md-10">
+<h1 id="exercises-in-regular-expressions">Exercises in Regular Expressions</h1>
+<h4 id="s-richard-smith-february-21-2016">S Richard Smith, February 21, 2016</h4>
+<h2 id="q3-regular-expressions-to-clean-and-organize-data">Q3: Regular Expressions to Clean and Organize Data</h2>
+<h3 id="the-data">The Data:</h3>
+<p>The example starts with a string of raw data:</p>
+<blockquote>
+<p>555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5543642Dr. Julius Hibbert</p>
+</blockquote>
+<h4 id="using-regular-expressions-the-authors-extract-the-names-and-phone-numbers-from-the-data.-i-have-added-them-to-a-data-frame-as-seen-below.">Using regular expressions, the authors extract the names and phone numbers from the data. I have added them to a data frame, as seen below.</h4>
+<div class="row">
+<table border=1>
+<tr>
+<th>
+</th>
+<th>
+Full Name
+</th>
+<th>
+Phone No.
+</th>
+</tr>
+<tr>
+<td>
+1
+</td>
+<td>
+Moe Szyslak
+</td>
+<td>
+555-1239
+</td>
+</tr>
+<tr>
+<td>
+2
+</td>
+<td>
+Burns, C. Montgomery
+</td>
+<td>
+<ol start="636" style="list-style-type: decimal">
+<li>555-0113
+</td>
+</tr>
+<tr>
+<td>
+3
+</td>
+<td>
+Rev. Timothy Lovejoy
+</td>
+<td>
+555-6542
+</td>
+</tr>
+<tr>
+<td>
+4
+</td>
+<td>
+Ned Flanders
+</td>
+<td>
+555 8904
+</td>
+</tr>
+<tr>
+<td>
+5
+</td>
+<td>
+Simpson, Homer
+</td>
+<td>
+636-555-3226
+</td>
+</tr>
+<tr>
+<td>
+6
+</td>
+<td>
+Dr. Julius Hibbert
+</td>
+<td>
+5543642
+</td>
+</tr>
+</table>
+</div></li>
+</ol>
+<h3 id="the-challenge">The Challenge</h3>
+<p>To be able to form an effective regular expression, we need to understand the pattern--what are the identifying characteristics for the breakdown of the full name (into title, first name, middle name, last name)? Most websites now use rules on entry forms to prevent the messy list that we see here. Unfortunately, the fields are in a wide variety of formats. Some are first name first, some are last name first. Some have a title or middle initial, while others don't.</p>
+<h3 id="planning-and-problem-solving">Planning and Problem Solving</h3>
+<p>After much pondering, I deduced the following rules. Obviously, this problem could be solved easily for these 6 entries. However, I wanted to define the broadest possible rules so that the most entries would be properly cleaned by this function. This solution should be robust enough to properly parse and categorize full name entries as long as they follow these characteristics: * Titles are followed by periods. * There are a total of 4 possible words in the full name field (title, first name, middle name, last name). * Any name can be replaced by a 1 letter abbreviation followed by a period. (The period must be included and titles cannot be reduced to a 1 letter abbreviatjion.) * The forward order of a full name is title, first name, middle name, last name. The last name first order is last name, comma, title, first name, middle name. The comma must be present.</p>
+<p>I used a mindmap to begin identifying and organizing the possible outcomes.</p>
+<div class="row">
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "\n        <div class=\"row\">\n            <div class=\"col-lg-12\" align=\"center\">\n                <img class=\"img-responsive\" src=\"images/FlameOrnament.jpg\">\n            </div>\n        </div>\n"
+</code></pre>
+</div>
+<h3 id="the-coding">The Coding</h3>
+<p>Maybe there is a way to clean this data with just a regular function, but it was not obvious to me, and the authors had suggested that breaking things down makes the code much easier to follow. I explored the option of using conditionals in the regular expression directly, but again decided for clarity that it would be better to declare the variables. Also, this makes testing much simpler and helps tremendously with debugging.</p>
+<p>I decided to get all my information about the field out so that I can see the differences and defining qualities. I decided on nested <code>ifelse</code> statements as the tool to do the decision making. After struggling with some fields ending in the wrong spot, I created a new mind map that reflected my implementation of the plan. Please ignore the &quot;)&quot; as the 3rd variable. From my mindmapping program I can export to an outline and then copy the formula right into <code>R</code>. I was missing the FALSE action for one of the nested statements, which this tree finally revealed to me.</p>
+<p><img src="https://raw.githubusercontent.com/srsmithdata/Regular-Expr-607w4/master/RegexNestedIfs.png" alt="Map of Nested If Statements" /></p>
+<h4 id="to-help-with-debugging-and-mapping-i-created-a-template-formula-that-maps-to-the-cell-numbers-on-the-mindmap-above.">To help with debugging and mapping, I created a template formula that maps to the cell numbers on the mindmap above.</h4>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">TestName <- ifelse( NmDets$SpaceCt == 3, ifelse( NmDets$start > 0, '1.1', '1.2' ), ifelse( NmDets[,1] == 1, ifelse( NmDets[,2] > 0, '2.1.1', '2.1.2'), ifelse( NmDets[,2] > 0, ifelse( NmDets$w2e == NmDets$PerLocal, ifelse( NmDets$w2L > 2, '2.2.1.1.1', '2.2.1.1.2'  ), '2.2.1.2' ), ifelse( ( NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2), '2.2.2.1', '2.2.2.2' ) ) ) )</code></pre>
+</div>
+<p>That way if there was an unexpected outcome, I would see where the logic was wrong.</p>
+<p>Please see comments in code for an explanation of the function. In summary: - The number of spaces tell us how many words are present - The comma tells us order - The presence of a period and its relative location tells us whethere the title or middle name are actually present when we have 3 words.</p>
+<p>The cases where there are 2 words or 4 words are simplest, because once we know order, we know where each word will be mapped to. The three word case is the hardest because we don't know if the &quot;3rd&quot; word is a title or middle name, and they'll be in different positions.</p>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r"># counting spaces and finding comma and period location
+parse_Allname <- function(VectFullNames) {
+  # counting spaces and finding comma and period location
+  SpaceCt <- c(str_count(trimws(VectFullNames), ' '))
+  CommLocal <- unlist(str_locate(trimws(VectFullNames), ','))
+  PerLocal <- unlist(str_locate(VectFullNames, '\\.'))
+  
+  
+  # Extract each word
+  #
+  w1 <-
+    trimws(str_extract(trimws(VectFullNames), '[[:alpha:]]{1,}\\.?'))
+  w2 <-
+    trimws(str_extract(trimws(VectFullNames), ' [[:alpha:]]{1,}\\.?'))
+  w3 <-
+    trimws(
+      str_match(
+        trimws(VectFullNames), '[[:alpha:]]{1,}\\.?\\,? [[:alpha:]]{1,}\\.?\\,? ([[:alpha:]]{1,}\\.?\\,?)'
+      )
+    )
+  w3 <- unlist(w3[, 2])
+  w4 <-
+    trimws(
+      str_match(
+        trimws(VectFullNames), '[[:alpha:]]{1,}\\.?\\,? [[:alpha:]]{1,}\\.?\\,? [[:alpha:]]{1,}\\.?\\,? ([[:alpha:]]{1,}\\.?\\,?)'
+      )
+    )
+  w4 <- unlist(w4[, 2])
+  
+  # Find the string length (needed to determine abbreviated name versus title
+  w1L <- str_length(w1)
+  w2L <- str_length(w2)
+  w3L <- str_length(w3)
+  w4L <- str_length(w4)
+  
+  # Find the location of the string, needed to determine difference between middle name or title.
+  w1posn <- str_locate(string = VectFullNames, pattern = w1)
+  w2posn <- str_locate(string = VectFullNames, pattern = w2)
+  w3posn <- str_locate(string = VectFullNames, pattern = w3)
+  w4posn <- str_locate(string = VectFullNames, pattern = w4)
+  
+  # Creates a word matrix to which we can add attributes
+  NmDets <-
+    data.frame(
+      SpaceCt, CommLocal, PerLocal[, 1], w1, w2, w3, w4, w1L, w2L, w3L, w4L, w1posn, w2posn, w3posn, w4posn, stringsAsFactors = F
+    )
+  NmDets[is.na(NmDets)] <- 0
+  NmDets <- data.frame(NmDets[,-3])
+  colnames(NmDets) <-
+    c(
+      "SpaceCt", "CommaLoc", "PerLocal", "w1", "w2", "w3", "w4", "w1L", "w2L", "w3L", "w4L", "w1s", "w1e", "w2s", "w2e", "w3s", "w3e", "w4s", "w4e"
+    )
+  
+  
+  # The nested if statements populating each of the 4 variables
+  
+  FName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, w3, w1), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, w2, w1), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, w3, w2), w2
+          ), ifelse((
+            NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2
+          ), w2, w1)
+        )
+      )
+    )
+  
+  TName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, w2, w1), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, ' ', ' '), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, NmDets$w2, ' '), ' '
+          ), ifelse((
+            NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2
+          ), w1, ' ')
+        )
+      )
+    )
+  
+  MName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, w4, w3), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, ' ', ' '), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, ' ', NmDets$w3), NmDets$w3
+          ), ifelse((
+            NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2
+          ), ' ', w2)
+        )
+      )
+    )
+  
+  LName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, NmDets$w1, NmDets$w4), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, NmDets$w1, NmDets$w2), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, NmDets$w1, NmDets$w1), NmDets$w1
+          ), ifelse((NmDets$w1e == NmDets$PerLocal &
+                       NmDets$w1L > 2), NmDets$w3, NmDets$w3
+          )
+        )
+      )
+    )
+  
+  DetFName <-
+    data.frame(stringsAsFactors = F, VectFullNames, TName, FName, MName, LName)
+  names(DetFName) <-
+    c('Full Name', 'Title', 'First Name', 'Middle Name', 'Last Name')
+  
+  return(DetFName)
+  
+}</code></pre>
+</div>
+<h3 id="with-this-function-built-we-can-take-any-vectorized-full-name-list-that-meets-the-aforementioned-criteria-and-run-it-through-to-get-clean-separated-name-fields.">With this function built, we can take any vectorized full name list (that meets the aforementioned criteria) and run it through to get clean separated name fields.</h3>
+<h3 id="so-to-use-this-list-as-a-first-test">So to use this list as a first test:</h3>
+<h4 id="first-well-subset-our-data-to-a-vector.">First we'll subset our data to a vector.</h4>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">as.vector(phonelist[,1]) -> strvect</code></pre>
+</div>
+<h4 id="we-then-enter-our-vectorized-list-into-our-newly-minted-function-and-print-the-results">We then enter our vectorized list into our newly minted function ( ) and print the results!</h4>
+<div class="row">
+<table border="1">
+<tr>
+<th>
+</th>
+<th>
+Full Name
+</th>
+<th>
+Title
+</th>
+<th>
+First Name
+</th>
+<th>
+Middle Name
+</th>
+<th>
+Last Name
+</th>
+</tr>
+<tr>
+<td>
+1
+</td>
+<td>
+Moe Szyslak
+</td>
+<td>
+</td>
+<td>
+Moe
+</td>
+<td>
+</td>
+<td>
+Szyslak
+</td>
+</tr>
+<tr>
+<td>
+2
+</td>
+<td>
+Burns, C. Montgomery
+</td>
+<td>
+</td>
+<td>
+C.
+</td>
+<td>
+Montgomery
+</td>
+<td>
+Burns
+</td>
+</tr>
+<tr>
+<td>
+3
+</td>
+<td>
+Rev. Timothy Lovejoy
+</td>
+<td>
+Rev.
+</td>
+<td>
+Timothy
+</td>
+<td>
+</td>
+<td>
+Lovejoy
+</td>
+</tr>
+<tr>
+<td>
+4
+</td>
+<td>
+Ned Flanders
+</td>
+<td>
+</td>
+<td>
+Ned
+</td>
+<td>
+</td>
+<td>
+Flanders
+</td>
+</tr>
+<tr>
+<td>
+5
+</td>
+<td>
+Simpson, Homer
+</td>
+<td>
+</td>
+<td>
+Homer
+</td>
+<td>
+</td>
+<td>
+Simpson
+</td>
+</tr>
+<tr>
+<td>
+6
+</td>
+<td>
+Dr. Julius Hibbert
+</td>
+<td>
+Dr.
+</td>
+<td>
+Julius
+</td>
+<td>
+</td>
+<td>
+Hibbert
+</td>
+</tr>
+</table>
+</div>
+<h2 id="q7-constructing-regular-expressions-to-accomodate">Q7 Constructing Regular Expressions to Accomodate</h2>
+<p>In data mining and extraction, the web is a great resource with vast amounts of data. As such, many cases arise in which we will want to pull data from webpages. To do so, we must be able to handle the &quot;unstructured&quot; data found there, reading in the standard web page in HTML format, and extracting the valuable information while leaving the rest. The very coding and structure of an HTML page can help us know where to tell R to look for the information we want.</p>
+<p>Using regular expressions can be a powerful way to achieve this goal. However, we must be careful since many characters used in HTML are <em>special</em> <em>characters</em> in the regex engine.</p>
+<p>Take the following string as an example:</p>
+If you want to extract the first HTML tag here, you might think to write:
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">RGXpttn <- '<.+>'
+str_extract(cnn, RGXpttn)</code></pre>
+</div>
+<p>Since you want whatever is in the first tag, you used the wildcard character &quot;.&quot; with a &quot;+&quot; after it to indicate repeating. You started and ended your pattern with the &quot;&lt;&quot; and &quot;&gt;&quot; since that usually indicates the beginning and ending of a tag in HTML.</p>
+However, there are a couple problems with this approach. If we test this expression, we get the following:
+<div class="row">
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "<title>+++BREAKING NEWS+++</title>"
+</code></pre>
+</div>
+<p>Remember that regular expressions are &quot;greedy&quot; in their natural state, meaning that they will capture the longest text string possibly while not breaking any rules of the expression.</p>
+To capture just the first tag in this string, we can modify the search pattern as follows:
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">RGXpttn <- '<.+>'
+
+str_extract(cnn, RGXpttn)</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "<title>+++BREAKING NEWS+++</title>"
+</code></pre>
+</div>
+If you are interested in the first tag, we could modify the code as follows:
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">RGXpttn <- '<[:alpha:]+>'
+str_extract(cnn, RGXpttn)</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "<title>"
+</code></pre>
+</div>
+<p>Here we use the character class for all letters to capture the information inside this tag. If you want to capture the opening and closing tag, we'd have to add the variable to catch punctuation, since closing tags start with a forward slash.</p>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">RGXpttn <- '<[[:alpha:][:punct:]]+>'
+str_extract_all(cnn, RGXpttn)</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [[1]]
+## [1] "<title>"  "</title>"
+</code></pre>
+</div>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">smplchtshthtml <- '<a class="addthis_button_compact at300m" href="http://www.cheatography.com/#"><span class="at-icon-wrapper" style="line-height: 32px; height: 32px; width: 32px; background-color: rgb(252, 109, 76);"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" title="Compact" alt="Compact" style="width: 32px; height: 32px;" class="at-icon at-icon-addthis"><g><path d="M25.07 13.74h-6.71V7.03h-4.47v6.71H7.18v4.47h6.71v6.71h4.47v-6.71h6.71z"></path></g></svg></span></a>'
+
+SmpPttn <- 'a'
+str_extract(SmpPttn, smplchtshthtml)</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] NA
+</code></pre>
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">is.character(smplchtshthtml)</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] TRUE
+</code></pre>
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">str_extract(smplchtshthtml, SmpPttn)             </code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "a"
+</code></pre>
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">## Original Website: chtshthtml <- readLines('http://www.cheatography.com/davechild/cheat-sheets/regular-expressions/', n = -1, warn = F)
+
+
+SmpPttn <- '<([:alpha:][ [:alpha:]]?)[="./;_\\-:!@#$%^&*()-=+[:alnum:][:blank:]]+>'
+str_extract_all(smplchtshthtml, SmpPttn)</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [[1]]
+## [1] "<a class=\"addthis_button_compact at300m\" href=\"http://www.cheatography.com/#\">"                                                                                                                                    
+## [2] "<span class=\"at-icon-wrapper\" style=\"line-height: 32px; height: 32px; width: 32px; background-color: rgb(252, 109, 76);\">"                                                                                         
+## [3] "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 32 32\" title=\"Compact\" alt=\"Compact\" style=\"width: 32px; height: 32px;\" class=\"at-icon at-icon-addthis\">"
+## [4] "<path d=\"M25.07 13.74h-6.71V7.03h-4.47v6.71H7.18v4.47h6.71v6.71h4.47v-6.71h6.71z\">"
+</code></pre>
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">SmpPttn <- '<([:alpha:]+)( [:alpha:]+)*=[="./;_\\-:!@#$%^&*()-=+[:alnum:][:blank:]]+>'
+TagTbl <- data.frame(str_match_all(smplchtshthtml, SmpPttn))
+TagTbl</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">##                                                                                                                                                                                                         X1
+## 1                                                                                                                           <a class="addthis_button_compact at300m" href="http://www.cheatography.com/#">
+## 2                                                                                <span class="at-icon-wrapper" style="line-height: 32px; height: 32px; width: 32px; background-color: rgb(252, 109, 76);">
+## 3 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" title="Compact" alt="Compact" style="width: 32px; height: 32px;" class="at-icon at-icon-addthis">
+## 4                                                                                                                       <path d="M25.07 13.74h-6.71V7.03h-4.47v6.71H7.18v4.47h6.71v6.71h4.47v-6.71h6.71z">
+##     X2     X3
+## 1    a  class
+## 2 span  class
+## 3  svg  xmlns
+## 4 path      d
+</code></pre>
+</div>
+<p>Thanks to <a href="http://www.cheatography.com/davechild/cheat-sheets/regular-expressions/">Dave for your cheatsheet</a>.</p>
+<h2 id="q8">Q8</h2>
+<p>Given the binomial equation and it's expansion: <br /><span class="math">(5 − 3)<sup>2</sup> = 5<sup>2</sup> − 2 × 5 × 3 + 3<sup>2</sup></span><br /></p>
+<p>Let's create the formula as a string in R so we can extract the formula.</p>
+When we use the search pattern <code>MthForm &lt;- '[^0-9=+*()]+'</code>, we get:
+<div class="row">
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "-"
+</code></pre>
+</div>
+<p>As you can see, the only thing returned was the minus sign. The reason for this result is because of the issue of meta characters.</p>
+<p>The cheat sheet that we pulled HTML from above has a few tables listing all the characters. In the initial expression, the following are actually meta characters: <code>^, -, *, (, ), and +</code>. However, once inserted into a class, they are read as regular characters instead of metacharacters, with the exception of the <code>-</code> and the <code>^</code>.Since they retain their meta qualities, it's important to understand their impact. - The carat <code>^</code> is used in math calculations to denote raising something to a power. To the regular expression engine, it tells the engine to return the inverse of the class members. - The minus sign <code>-</code> denotes range in a class.</p>
+<p>So instead of getting the formula, we get the inverse of the characters in the class. Since the <code>-</code> is not see as a character, but instead generates the full rangeof digits by being between 0 and 9, that is the only character returned.</p>
+<p>Since the question asks for the formula, I'm assuming that means the binomial formula without the expansion. To extract that using a similar format as the initial attempt, we could change it to :</p>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">MthPtn <- '[\\^0-9\\-+*()]+'
+str_extract( MthStr, MthPtn )</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## [1] "(5-3)^2"
+</code></pre>
+</div>
+<p>By escaping the <code>^</code> and adding the escaped minus sign (since we do still want the full range of numbers, and removing the equal sign, we are left with everything on the left side of the equation.</p>
+<h1 id="q9">Q9</h1>
+<p>We are asked to decode the following:</p>
+<p>using regular expressions.</p>
+<p>It is not clear if the lines are meant to be evaluated separately or as a whole single string, so I will do both.</p>
+<p>To incorporate what we've learned, I will use different search patterns to see if they decifer the message</p>
+<div class="row">
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">PuzLT <- as.vector( c( puzL1 , puzL2 , puzL3 , puzL4 , puzL5 , puzL6 , puzL7 ))
+
+Ptn1 <- '[:lower:]'
+Rslt1 <- str_extract_all(PuzLT, Ptn1)
+cat((cat(as.character(unlist(Rslt1)), sep= '' )))</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## icopowlzmstcdwnkigvdicpuggvhrynjuwczihqrfpxsjdwpnanwowisdijjkpfdrcocbtyczjataootjtjnecfekrwlwwojigdvrfrbzbknbhzgvizcropwgnbqofalotfbwmktszqefyndtkcfgmcgxonhkgr
+</code></pre>
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">Ptn2 <- '[:upper:]'
+Rslt2 <- str_extract_all(PuzLT, Ptn2)
+cat((cat(as.character(unlist(Rslt2)), sep= '' )))</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## CONGRATULATIONSYOUAREASUPERNERD
+</code></pre>
+<button class="source R toggle btn btn-xs btn-primary">
+<span class="glyphicon glyphicon-chevron-down"></span> R source
+</button>
+<pre style=""><code class="source r">Ptn2 <- '[:upper:]'
+Rslt2 <- str_extract_all(PuzLT, Ptn2)
+cat((cat(as.character(unlist(Rslt2)), sep= '' )))</code></pre>
+<button class="output R toggle btn btn-xs btn-success">
+<span class="glyphicon glyphicon-chevron-down"></span> R output
+</button>
+<pre style=""><code class="output r">## CONGRATULATIONSYOUAREASUPERNERD
+</code></pre>
+</div>
+Wow--on my second guess. :)
+</div>
+</div>
+<div class="navbar navbar-fixed-bottom navbar-inverse">
+<div class="container">
+<div class="navbar-header">
+<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+<span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span>
+</button>
+</div>
+<div id="bottom-navbar" class="navbar-collapse collapse navbar-responsive-collapse">
+<ul class="nav navbar-nav navbar-right">
+<li class="nav">
+<p class="navbar-text">
+Toggle
+</p>
+</li>
+<li class="dropup">
+<a href="#" class="dropdown-toggle" data-toggle="dropdown">Code <b class="caret"></b></a>
+<ul class="dropdown-menu">
+<li class="dropdown-header">
+Languages
+</li>
+<li class="active">
+<a href="#" class="toggle-global source R" type="source.R">R</a>
+</li>
+<li>
+<a href="#" type="all-source" class="toggle-global">All</a>
+</li>
+</ul>
+</li>
+<li class="dropup">
+<a href="#" class="dropdown-toggle" data-toggle="dropdown">Output <b class="caret"></b></a>
+<ul class="dropdown-menu">
+<li class="dropdown-header">
+Type
+</li>
+<li class="active">
+<a href="#" class="toggle-global output" type="output">output</a>
+</li>
+<li>
+<a href="#" type="all-output" class="toggle-global">All</a>
+</li>
+</ul>
+</li>
+<li class="active">
+<a href="#" type="figure" class="toggle-global">Figures</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div id="push">
+
+</div>
+<div id="footer">
+<div class="container">
+<p class="text-muted" id="credit">
+Styled with <a href="https://github.com/jimhester/knitrBootstrap">knitrBootstrap</a>
+</p>
+</div>
+</div>
+<link rel="stylesheet" id="theme" href="https://netdna.bootstrapcdn.com/bootswatch/3.0.0/slate/bootstrap.min.css" media="screen"></link><link rel="stylesheet" id="highlight" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/7.3/styles/tomorrow-night-blue.min.css" media="screen"></link>
+</div>
+</body>
+</html>

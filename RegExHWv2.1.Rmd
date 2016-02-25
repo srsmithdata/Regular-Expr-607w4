@@ -1,0 +1,414 @@
+---
+title: "Exercises in Regular Expressions"
+author: "S Richard Smith"
+date: "February 21, 2016"
+output: 
+  html_document:
+    keep_md: true
+    theme: spacelab
+    toc: true
+    toc_depth: 2
+
+---
+
+```{r echo=F, warning=F, message=F}
+# Init packages needed for subsequent code - please remove '#' before the install line if you need to install that referenced package
+
+# install.packages('devtools',repos = "http://lib.stat.cmu.edu/R/CRAN/")
+# install_github('rstudio/rmarkdown')
+# install.packages('knitr', repos = c('http://rforge.net', 'http://cran.rstudio.org'), type = 'source')
+# install_github('jimhester/knitrBootstrap')
+# install.packages("shape")
+# install.packages("diagram")
+# install.packages("tau")
+require(devtools)
+require(rmarkdown)
+require(knitr)
+require(knitrBootstrap)
+require(xtable)
+require(stringr)
+require(XML)
+require(RCurl)
+require(tau)
+require(graphics)
+require(shape)
+require(diagram)
+
+
+```
+
+
+# Q3 Regular Expressions to Clean and Organize Data
+
+```{r echo=F, warning=F, message=F}
+
+raw.data <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5543642Dr. Julius Hibbert"
+
+name <- unlist(str_extract_all(raw.data, "[[:alpha:]., ]{2,}"))
+phone <- unlist(str_extract_all(raw.data, "\\(?(\\d{3})?\\)?(-| )?\\d{3}(-| )?\\d{4}"))
+phonelist <- data.frame(name, phone)
+names(phonelist) <- c('Full_Name', 'Phone_No')
+
+```
+
+## The Data:
+The example starts with a string of raw data:
+
+> `r raw.data`
+
+#### Using regular expressions, the authors extract the names and phone numbers from the data. I have added them to a data frame, as seen below.
+
+
+```{r echo=F, results='asis'}
+names(phonelist) <- c('Full Name', 'Phone No.')
+TblOut = xtable( phonelist, auto = T)
+
+print(TblOut, type = 'html', comment = F)
+
+```
+
+## The Challenge
+
+To be able to form an effective regular expression, we need to understand the pattern--what are the identifying characteristics for the breakdown of the full name (into title, first name, middle name, last name)? Most websites now use rules on entry forms to prevent the messy list that we see here. Unfortunately, the fields are in a wide variety of formats. Some are first name first, some are last name first. Some have a title or middle initial, while others don't. 
+
+## Planning and Problem Solving
+
+After much pondering, I deduced the following rules. Obviously, this problem could be solved easily for these 6 entries. However, I wanted to define the broadest possible rules so that the most entries would be properly cleaned by this function. This solution should be robust enough to properly parse and categorize full name entries as long as they follow these characteristics:
+* Titles are followed by periods.
+* There are a total of 4 possible words in the full name field (title, first name, middle name, last name).
+* Any name can be replaced by a 1 letter abbreviation followed by a period. (The period must be included and titles cannot be reduced to a 1 letter abbreviatjion.)
+* The forward order of a full name is title, first name, middle name, last name. The last name first order is last name, comma, title, first name, middle name. The comma must be present.
+
+### I used a mindmap to begin identifying and organizing the possible outcomes. 
+
+
+![Mind Map of Possible Outcomes](https://raw.githubusercontent.com/srsmithdata/Regular-Expr-607w4/0b0e2ee4b4ce305023432c419fe03d2535b058a6/MMofTestPlan.jpg)
+
+## The Coding
+
+Maybe there is a way to clean this data with just a regular function, but it was not obvious to me, and the authors had suggested that breaking things down makes the code much easier to follow. I explored the option of using conditionals in the regular expression directly, but again decided for clarity that it would be better to declare the variables. Also, this makes testing much simpler and helps tremendously with debugging.
+ 
+I decided to get all my information about the field out so that I can see the differences and defining qualities. I decided on nested `ifelse` statements as the tool to do the decision making. After struggling with some fields ending in the wrong spot, I created a new mind map that reflected my implementation of the plan. Please ignore the ")" as the 3rd variable. From my mindmapping program I can export to an outline and then copy the formula right into `R`. I was missing the FALSE action for one  of the nested statements, which this tree finally revealed to me.
+
+![Map of Nested If Statements](https://raw.githubusercontent.com/srsmithdata/Regular-Expr-607w4/master/RegexNestedIfs.png)
+
+
+### To help with debugging and mapping, I created a template formula that maps to the cell numbers on the mindmap above.
+
+```{r eval=FALSE}
+TestName <- ifelse( NmDets$SpaceCt == 3, ifelse( NmDets$start > 0, '1.1', '1.2' ), ifelse( NmDets[,1] == 1, ifelse( NmDets[,2] > 0, '2.1.1', '2.1.2'), ifelse( NmDets[,2] > 0, ifelse( NmDets$w2e == NmDets$PerLocal, ifelse( NmDets$w2L > 2, '2.2.1.1.1', '2.2.1.1.2'  ), '2.2.1.2' ), ifelse( ( NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2), '2.2.2.1', '2.2.2.2' ) ) ) )
+```
+
+That way if there was an unexpected outcome, I would see where the logic was wrong.
+
+Please see comments in code for an explanation of the function. In summary:
+- The number of spaces tell us how many words are present
+- The comma tells us order
+- The presence of a period and its relative location tells us whethere the title or middle name are actually present when we have 3 words.
+
+The cases where there are 2 words or 4 words are simplest, because once we know order, we know where each word will be mapped to. The three word case is the hardest because we don't know if the "3rd" word is a title or middle name, and they'll be in different positions.
+
+```{r}
+# counting spaces and finding comma and period location
+parse_Allname <- function(VectFullNames) {
+  # counting spaces and finding comma and period location
+  SpaceCt <- c(str_count(trimws(VectFullNames), ' '))
+  CommLocal <- unlist(str_locate(trimws(VectFullNames), ','))
+  PerLocal <- unlist(str_locate(VectFullNames, '\\.'))
+  
+  
+  # Extract each word
+  #
+  w1 <-
+    trimws(str_extract(trimws(VectFullNames), '[[:alpha:]]{1,}\\.?'))
+  w2 <-
+    trimws(str_extract(trimws(VectFullNames), ' [[:alpha:]]{1,}\\.?'))
+  w3 <-
+    trimws(
+      str_match(
+        trimws(VectFullNames), '[[:alpha:]]{1,}\\.?\\,? [[:alpha:]]{1,}\\.?\\,? ([[:alpha:]]{1,}\\.?\\,?)'
+      )
+    )
+  w3 <- unlist(w3[, 2])
+  w4 <-
+    trimws(
+      str_match(
+        trimws(VectFullNames), '[[:alpha:]]{1,}\\.?\\,? [[:alpha:]]{1,}\\.?\\,? [[:alpha:]]{1,}\\.?\\,? ([[:alpha:]]{1,}\\.?\\,?)'
+      )
+    )
+  w4 <- unlist(w4[, 2])
+  
+  # Find the string length (needed to determine abbreviated name versus title
+  w1L <- str_length(w1)
+  w2L <- str_length(w2)
+  w3L <- str_length(w3)
+  w4L <- str_length(w4)
+  
+  # Find the location of the string, needed to determine difference between middle name or title.
+  w1posn <- str_locate(string = VectFullNames, pattern = w1)
+  w2posn <- str_locate(string = VectFullNames, pattern = w2)
+  w3posn <- str_locate(string = VectFullNames, pattern = w3)
+  w4posn <- str_locate(string = VectFullNames, pattern = w4)
+  
+  # Creates a word matrix to which we can add attributes
+  NmDets <-
+    data.frame(
+      SpaceCt, CommLocal, PerLocal[, 1], w1, w2, w3, w4, w1L, w2L, w3L, w4L, w1posn, w2posn, w3posn, w4posn, stringsAsFactors = F
+    )
+  NmDets[is.na(NmDets)] <- 0
+  NmDets <- data.frame(NmDets[,-3])
+  colnames(NmDets) <-
+    c(
+      "SpaceCt", "CommaLoc", "PerLocal", "w1", "w2", "w3", "w4", "w1L", "w2L", "w3L", "w4L", "w1s", "w1e", "w2s", "w2e", "w3s", "w3e", "w4s", "w4e"
+    )
+  
+  
+  # The nested if statements populating each of the 4 variables
+  
+  FName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, w3, w1), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, w2, w1), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, w3, w2), w2
+          ), ifelse((
+            NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2
+          ), w2, w1)
+        )
+      )
+    )
+  
+  TName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, w2, w1), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, ' ', ' '), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, NmDets$w2, ' '), ' '
+          ), ifelse((
+            NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2
+          ), w1, ' ')
+        )
+      )
+    )
+  
+  MName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, w4, w3), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, ' ', ' '), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, ' ', NmDets$w3), NmDets$w3
+          ), ifelse((
+            NmDets$w1e == NmDets$PerLocal & NmDets$w1L > 2
+          ), ' ', w2)
+        )
+      )
+    )
+  
+  LName <-
+    ifelse(
+      NmDets$SpaceCt == 3, ifelse(NmDets$start > 0, NmDets$w1, NmDets$w4), ifelse(
+        NmDets[, 1] == 1, ifelse(NmDets[, 2] > 0, NmDets$w1, NmDets$w2), ifelse(
+          NmDets[, 2] > 0, ifelse(
+            NmDets$w2e == NmDets$PerLocal, ifelse(NmDets$w2L > 2, NmDets$w1, NmDets$w1), NmDets$w1
+          ), ifelse((NmDets$w1e == NmDets$PerLocal &
+                       NmDets$w1L > 2), NmDets$w3, NmDets$w3
+          )
+        )
+      )
+    )
+  
+  DetFName <-
+    data.frame(stringsAsFactors = F, VectFullNames, TName, FName, MName, LName)
+  names(DetFName) <-
+    c('Full Name', 'Title', 'First Name', 'Middle Name', 'Last Name')
+  
+  return(DetFName)
+  
+}
+
+```
+
+
+### With this function built, we can take any vectorized full name list (that meets the aforementioned criteria) and run it through to get clean separated name fields.
+
+### So to use this list as a first test:
+First we'll subset our data to a vector.
+
+```{r}
+
+as.vector(phonelist[,1]) -> strvect
+
+
+```
+
+
+#### We then enter our vectorized list into our newly minted function ( `r CleanNames <- parse_Allname(strvect)` ) and print the results! 
+
+```{r echo=FALSE, results='asis'}
+
+TblOut = xtable( CleanNames, auto = T )
+
+print( TblOut, type = 'html', comment=F )
+
+
+
+```
+
+***
+
+# Q7 Constructing Regular Expressions to Data Mine
+
+In data mining and extraction, the web is a great resource with vast amounts of data. As such, many cases arise in which we will want to pull data from webpages. To do so, we must be able to handle the "unstructured" data found there, reading in the standard web page in HTML format, and extracting the valuable information while leaving the rest. The very coding and structure of an HTML page can help us know where to tell R to look for the information we want.
+
+Using regular expressions can be a powerful way to achieve this goal. However, we must be careful since many characters used in HTML are *special* *characters* in the regex engine. 
+
+Take the following string as an example:
+`r cnn <- '<title>+++BREAKING NEWS+++</title>'`
+
+If you want to extract the first HTML tag here, you might think to write:
+```{r eval=F}
+RGXpttn <- '<.+>'
+str_extract(cnn, RGXpttn)
+
+```
+
+Since you want whatever is in the first tag, you used the wildcard character "." with a "+" after it to indicate repeating. You started and ended your pattern with the "<" and ">" since that usually indicates the beginning and ending of a tag in HTML.
+
+However, there are a couple problems with this approach. If we test this expression, we get the following:
+```{r eval=T, echo=F}
+RGXpttn <- '<.+>'
+str_extract(cnn, RGXpttn)
+
+```
+
+Remember that regular expressions are "greedy" in their natural state, meaning that they will capture the longest text string possibly while not breaking any rules of the expression. 
+
+If you are interested in the first tag, we could modify the code as follows:
+```{r}
+RGXpttn <- '<[:alpha:]+>'
+str_extract(cnn, RGXpttn)
+
+```
+
+Here we use the character class for all letters to capture the information inside this tag. If you want to capture the opening and closing tag, we'd have to add the variable to catch punctuation, since closing tags start with a forward slash.
+
+```{r}
+RGXpttn <- '<[[:alpha:][:punct:]]+>'
+str_extract_all(cnn, RGXpttn)
+
+```
+
+## We can easily see what a valuable tool this is. To illustrate, let us look at another example with more complicated tagging.
+
+While studying this week, I found a great cheatsheet for regular expressions (thanks you [Dave for your cheatsheet](http://www.cheatography.com/davechild/cheat-sheets/regular-expressions/) ). For illustration, let's take a segment of the html code from his page.
+
+
+```{r}
+
+smplchtshthtml <- '<a class="addthis_button_compact at300m" href="http://www.cheatography.com/#"><span class="at-icon-wrapper" style="line-height: 32px; height: 32px; width: 32px; background-color: rgb(252, 109, 76);"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" title="Compact" alt="Compact" style="width: 32px; height: 32px;" class="at-icon at-icon-addthis"><g><path d="M25.07 13.74h-6.71V7.03h-4.47v6.71H7.18v4.47h6.71v6.71h4.47v-6.71h6.71z"></path></g></svg></span></a>'
+```
+
+
+### Knowing that html tags start with a < and then a letter lets us anchor the pattern we're looking for. The code below extracts all the full tags in the segment.
+
+```{r}
+
+SmpPttn <- '<([:alpha:][ [:alpha:]]?)[="./;_\\-:!@#$%^&*()-=+[:alnum:][:blank:]]+>'
+str_extract_all(smplchtshthtml, SmpPttn)
+```
+
+
+### Possibly, we don't need his specific settings, but want to get a list of all the tags used. This code generates a list of the tags with their first attribute.
+
+```{r}
+SmpPttn <- '<([:alpha:]+)( [:alpha:]+)*=[="./;_\\-:!@#$%^&*()-=+[:alnum:][:blank:]]+>'
+TagTbl <- data.frame(str_match_all(smplchtshthtml, SmpPttn))
+TagTbl
+
+
+```
+
+***
+
+# Q8 Regular Expressions and Parsing
+
+Given the binomial equation and it's expansion:
+$$ (5-3)^2 = 5^2-2\times5\times3+3^2 $$
+
+Let's create the formula as a string in R so we can extract the formula.
+
+```{r echo=FALSE}
+MthStr <- '(5-3)^2=5^2-2*5*3+3^2'
+MthForm <- '[^0-9=+*()]+'
+
+```
+
+When we use the search pattern `MthForm <- '[^0-9=+*()]+'`, we get:
+```{r echo=FALSE}
+MthStr <- '(5-3)^2=5^2-2*5*3+3^2'
+MthPtn <- '[^0-9=+*()]+'
+MthForm <- str_extract( MthStr, MthPtn )
+MthForm
+```
+
+As you can see, the only thing returned was the minus sign. The reason for this result is because of the issue of meta characters.
+
+The cheat sheet that we pulled HTML from above has a few tables listing all the characters. In the initial expression, the following are actually meta characters: `^, -, *, (, ), and + `. However, once inserted into a class, they are read as regular characters instead of metacharacters, with the exception of the `-` and the `^`.Since they retain their meta qualities, it's important to understand their impact. 
+- The carat `^` is used in math calculations to denote raising something to a power. To the regular expression engine, it tells the engine to return the inverse of the class members. 
+- The minus sign `-` denotes range in a class. 
+
+So instead of getting the formula, we get the inverse of the characters in the class. Since the `-` is not see as a character, but instead generates the full rangeof digits by being between 0 and 9, that is the only character returned.
+
+Since the question asks for the formula, I'm assuming that means the binomial formula without the expansion. To extract that using a similar format as the initial attempt, we could change it to :
+
+```{r}
+
+MthPtn <- '[\\^0-9\\-+*()]+'
+str_extract( MthStr, MthPtn )
+
+
+```
+
+By escaping the `^` and adding the escaped minus sign (since we do still want the full range of numbers, and removing the equal sign, we are left with everything on the left side of the equation.
+
+***
+
+# Q9 Encryption
+
+We are asked to decode the following:
+`r puzL1 <- 'icopCowlzmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8'`
+`r puzL2 <- 'hqrfpRxs5Aj5dwpn0Tanwo'`
+`r puzL3 <- 'Uwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3'`
+`r puzL4 <- 'ne6c4Sfek.r1wlYwwojigO'`
+`r puzL5 <- 'd6vrfUrbz2.2bkAnbhzgv4R9i05zEcrop.wAgnb.SqoU65fPa'`
+`r puzL6 <- 'lotfb7wEm24k6t3sR9zqe5'`
+`r puzL7 <- 'fy89n6Nd5t9kc4fE905gmc4Rgxo5nhDk!gr'`
+
+using regular expressions. 
+
+It is not clear if the lines are meant to be evaluated separately or as a whole single string, so I will do both.
+
+To incorporate what we've learned, I will use different search patterns to see if they decifer the message
+
+```{r}
+
+PuzLT <- as.vector( c( puzL1 , puzL2 , puzL3 , puzL4 , puzL5 , puzL6 , puzL7 ))
+
+Ptn1 <- '[:lower:]'
+Rslt1 <- str_extract_all(PuzLT, Ptn1)
+cat((cat(as.character(unlist(Rslt1)), sep= '' )))
+
+Ptn2 <- '[:upper:]'
+Rslt2 <- str_extract_all(PuzLT, Ptn2)
+cat((cat(as.character(unlist(Rslt2)), sep= '' )))
+
+
+Ptn2 <- '[:upper:]'
+Rslt2 <- str_extract_all(PuzLT, Ptn2)
+cat((cat(as.character(unlist(Rslt2)), sep= '' )))
+
+
+```
+
+Wow--on my second guess. :)
+
